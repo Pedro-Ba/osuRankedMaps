@@ -4,13 +4,13 @@ var api_key = '';
 //NOTE: dates are YYYY MM DD
 const query_params = {
     'modes': 'Standard',
-    'date_start': '2023-01-01',
-    'date_end': '2023-02-01',
+    'date_start': '2023-03-01',
+    'date_end': '2023-04-01',
     'query_order': '-date'
 }
 var fileNames = {
-    'beatmaps': 'beatmaps'+query_params.date_start+'_to_'+query_params.date_end+'.csv',
-    'beatmapDiffs': 'beatmapDiffs'+query_params.date_start+'_to_'+query_params.date_end+'.csv'
+    'beatmaps': 'csvs/beatmaps'+query_params.date_start+'_to_'+query_params.date_end+'.csv',
+    'beatmapDiffs': 'csvs/beatmapDiffs'+query_params.date_start+'_to_'+query_params.date_end+'.csv'
 }
 
 async function returnFetchResponse(fetchLink) {
@@ -21,7 +21,7 @@ async function returnFetchResponse(fetchLink) {
     })
 };
 
-async function get2023beatmaps(fetchLink) {
+async function getBeatmaps(fetchLink) {
     let response = await returnFetchResponse(fetchLink);
     let responseString = await response.text();
     let JSONresponse = JSON.parse(responseString);
@@ -117,6 +117,7 @@ async function iteratesThroughBeatmaps(beatmaps) {
             + '\n'
         );
         let beatmapSet = await osuAPI.getBeatmapSetDisc(api_key, beatmap['beatmapset_id']);
+        console.log(beatmapSet);
         await iteratesThroughSet(beatmapSet);
     };
     await writeBeatmapCSV(inputString);
@@ -145,12 +146,12 @@ async function main() {
         '&query_order=' + query_params.query_order +
         '&offset=');
     let fetchLink = BaseURL + i;
-    let { result_count, beatmaps } = await get2023beatmaps(fetchLink);
+    let { result_count, beatmaps } = await getBeatmaps(fetchLink);
     let pageTotal = Math.floor(result_count / 18);
     await iteratesThroughBeatmaps(beatmaps);
     for (i = 1; i <= pageTotal; i++) {
         fetchLink = BaseURL + i;
-        ({ result_count, beatmaps } = await get2023beatmaps(fetchLink));
+        ({ result_count, beatmaps } = await getBeatmaps(fetchLink));
         await iteratesThroughBeatmaps(beatmaps);
     }
 }
