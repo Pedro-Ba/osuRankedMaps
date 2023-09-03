@@ -4,8 +4,8 @@ var api_key = '';
 //NOTE: dates are YYYY MM DD
 const query_params = {
     'modes': 'Standard',
-    'date_start': '2023-03-01',
-    'date_end': '2023-04-01',
+    'date_start': '2023-08-01',
+    'date_end': '2023-09-01',
     'query_order': '-date'
 }
 var fileNames = {
@@ -62,7 +62,9 @@ async function iteratesThroughDifficulties(beatmapDiffs) {
             'Slider Count': beatmap['count_sliders'],
             'Spinner Count': beatmap['count_spinners']
         }
-        diffs.push(diffObject);
+        if(beatmap['mode_int'] == 0 && beatmap['ranked'] == 1){
+            diffs.push(diffObject);
+        }
     }
     diffs.sort(function (a, b) {
         return (a.SR < b.SR ? -1 : 1);
@@ -112,12 +114,10 @@ async function iteratesThroughBeatmaps(beatmaps) {
             beatmap['mapper'] + ',' +
             beatmap['date'] + ',' +
             beatmap['bpm'] + ',' +
-            beatmap['total_length'] + ',' +
-            beatmap['map_count'] + ','
+            beatmap['total_length'] + ','
             + '\n'
         );
         let beatmapSet = await osuAPI.getBeatmapSetDisc(api_key, beatmap['beatmapset_id']);
-        console.log(beatmapSet);
         await iteratesThroughSet(beatmapSet);
     };
     await writeBeatmapCSV(inputString);
@@ -125,7 +125,7 @@ async function iteratesThroughBeatmaps(beatmaps) {
 }
 
 async function createsFiles(){
-    let inputString = 'beatmapset, beatmap_id, beatmapset_id, artist, title, mapper, date, bpm, total_length, map_count,\n\n';
+    let inputString = 'beatmapset, beatmap_id, beatmapset_id, artist, title, mapper, date, bpm, total_length,\n\n';
     fs.writeFile(fileNames.beatmaps, inputString, function(err,file){
         if(err) throw err;
     })
