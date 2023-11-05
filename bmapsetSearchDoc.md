@@ -14,7 +14,7 @@ multiple values can be used by separating them with "."
 
 Cannot have multiple values.
 
-#### "s" = "Categories" in osu page, but can be surmised to be understood as "status";
+#### "s" = "Categories" in osu page, but can be understood as "status";
 - **left blank**, it defaults to "has leaderboards" equivalent (qualified, ranked, and loved),
 - **any** for all statuses,
 - **ranked** for ranked,
