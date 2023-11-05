@@ -2,33 +2,37 @@ var fs = require('fs');
 var osuAPI = require('./osuAPIfunctions.js');
 var api_key = '';
 //NOTE: dates are YYYY MM DD
-const query_params = {
-    'modes': 'Standard',
-    'date_start': '2023-08-01',
-    'date_end': '2023-09-01',
-    'query_order': '-date'
+
+const month = "2023-01"
+
+const queryStuff = {
+    "c": '',
+    "m": 0,
+    "s": 'ranked',
+    "nsfw": true,
+    "g": '',
+    "l": '',
+    "e": '',
+    "r": '',
+    "played": '',
+    "q": "ranked=" + month,
+    "page": 1 //page starts at 1, page 0 and 1 are the same.
 }
+
 var fileNames = {
-    'beatmaps': 'csvs/beatmaps'+query_params.date_start+'_to_'+query_params.date_end+'.csv',
-    'beatmapDiffs': 'csvs/beatmapDiffs'+query_params.date_start+'_to_'+query_params.date_end+'.csv'
+    'beatmaps': 'csvs/beatmaps'+month+'.csv',
+    'beatmapDiffs': 'csvs/beatmapDiffs'+month+'.csv'
 }
 
-async function returnFetchResponse(fetchLink) {
-    return fetch(fetchLink, {
-        headers: {
-            'Accept': 'application/json'
-        }
+async function createsFiles(){
+    let inputString = 'id, artist, title, mapper, ranked_date, bpm, nsfw, storyboard, video, playcount,\n\n';
+    fs.writeFile(fileNames.beatmaps, inputString, function(err,file){
+        if(err) throw err;
     })
-};
-
-async function getBeatmaps(fetchLink) {
-    let response = await returnFetchResponse(fetchLink);
-    let responseString = await response.text();
-    let JSONresponse = JSON.parse(responseString);
-    return {
-        result_count: JSONresponse['result_count'],
-        beatmaps: JSONresponse['beatmaps']
-    };
+    inputString = 'url, artist, title, difficulty, SR, AR, OD, CS, HP, Circle Count, Slider Count, Spinner Count, Song Length, Map Length, Max Combo, Passcount, Playcount\n\n'
+    fs.writeFile(fileNames.beatmapDiffs, inputString, function(err,file){
+        if(err) throw err;
+    })
 }
 
 async function writeBeatmapCSV(cleanInput) {
@@ -43,27 +47,35 @@ async function writeDifficultiesCSV(cleanInput) {
     return;
 }
 
-async function iteratesThroughDifficulties(beatmapDiffs) {
+async function iteratesThroughDifficulties(beatmapDiffs, artist, title) {
     let inputString = '';
     let diffs = [];
-    for (i = 0; i < beatmapDiffs.length; i++) {
-        let beatmap = await osuAPI.lookupBeatmap(api_key, beatmapDiffs[i]);
+    for (let beatmapDiff of beatmapDiffs) {
         let diffObject = {
-            'url': beatmap['url'],
-            'artist': beatmap['beatmapset']['artist'],
-            'title': beatmap['beatmapset']['title'],
-            'version': beatmap['version'],
-            'SR': beatmap['difficulty_rating'],
-            'AR': beatmap['ar'],
-            'OD': beatmap['accuracy'],
-            'CS': beatmap['cs'],
-            'HP': beatmap['drain'],
-            'Circle Count': beatmap['count_circles'],
-            'Slider Count': beatmap['count_sliders'],
-            'Spinner Count': beatmap['count_spinners']
+            'url': beatmapDiff['url'],
+            'artist': artist,
+            'title': title,
+            'version': beatmapDiff['version'],
+            'SR': beatmapDiff['difficulty_rating'],
+            'AR': beatmapDiff['ar'],
+            'OD': beatmapDiff['accuracy'],
+            'CS': beatmapDiff['cs'],
+            'HP': beatmapDiff['drain'],
+            'Circle Count': beatmapDiff['count_circles'],
+            'Slider Count': beatmapDiff['count_sliders'],
+            'Spinner Count': beatmapDiff['count_spinners'],
+            'Song Length': beatmapDiff['total_length'],
+            'Map Length': beatmapDiff['hit_length'],
+            'Max Combo': beatmapDiff['max_combo'],
+            'Passcount': beatmapDiff['passcount'],
+            'Playcount': beatmapDiff['playcount']
         }
-        if(beatmap['mode_int'] == 0 && beatmap['ranked'] == 1){
+        if(beatmapDiff['mode_int'] == 0 && beatmapDiff['ranked'] == 1){
             diffs.push(diffObject);
+        }
+        else{
+            console.log('Either mode int or ranked status is wrong. Check it out:')
+            console.log(beatmapDiff['url']);
         }
     }
     diffs.sort(function (a, b) {
@@ -83,6 +95,11 @@ async function iteratesThroughDifficulties(beatmapDiffs) {
             diffs[i]['Circle Count'] + ',' +
             diffs[i]['Slider Count'] + ',' +
             diffs[i]['Spinner Count'] + ',' +
+            diffs[i]['Song Length'] + ',' +
+            diffs[i]['Map Length'] + ',' +
+            diffs[i]['Max Combo'] + ',' +
+            diffs[i]['Passcount'] + ',' +
+            diffs[i]['Playcount'] + ',' +
             '\n'
         );
     }
@@ -90,70 +107,43 @@ async function iteratesThroughDifficulties(beatmapDiffs) {
     return;
 }
 
-async function iteratesThroughSet(beatmapSet) {
-    var len = beatmapSet.length;
-    let difficulties = [];
-    for (i = 0; i < len; i++) {
-        if (beatmapSet[i]['ranked'] == 1) {
-            difficulties.push(beatmapSet[i]['id']);
-        }
-    }
-    await iteratesThroughDifficulties(difficulties);
-    return;
-}
-
-async function iteratesThroughBeatmaps(beatmaps) {
+async function iteratesThroughBeatmapSets(beatmapSets) {
     let inputString = '';
-    for (const beatmap of beatmaps) {
+    for (const beatmapSet of beatmapSets) {
         inputString += (
-            beatmap['beatmapset'] + ',' +
-            beatmap['beatmap_id'] + ',' +
-            beatmap['beatmapset_id'] + ',' +
-            '"' + beatmap['artist'] + '"' + ',' +
-            '"' + beatmap['title'] + '"' + ',' +
-            beatmap['mapper'] + ',' +
-            beatmap['date'] + ',' +
-            beatmap['bpm'] + ',' +
-            beatmap['total_length'] + ','
+            beatmapSet['id'] + ',' +
+            '"' + beatmapSet['artist'] + '"' + ',' +
+            '"' + beatmapSet['title'] + '"' + ',' +
+            beatmapSet['creator'] + ',' +
+            beatmapSet['ranked_date'] + ',' +
+            beatmapSet['bpm'] + ',' +
+            beatmapSet['nsfw'] + ',' +
+            beatmapSet['storyboard'] + ',' +
+            beatmapSet['video'] + ',' +
+            beatmapSet['play_count'] + ','
             + '\n'
         );
-        let beatmapSet = await osuAPI.getBeatmapSetDisc(api_key, beatmap['beatmapset_id']);
-        await iteratesThroughSet(beatmapSet);
+        await iteratesThroughDifficulties(beatmapSet['beatmaps'], beatmapSet['artist'], beatmapSet['title']);
     };
     await writeBeatmapCSV(inputString);
     return;
-}
-
-async function createsFiles(){
-    let inputString = 'beatmapset, beatmap_id, beatmapset_id, artist, title, mapper, date, bpm, total_length,\n\n';
-    fs.writeFile(fileNames.beatmaps, inputString, function(err,file){
-        if(err) throw err;
-    })
-    inputString = 'url, artist, title, difficulty, SR, AR, OD, CS, HP, Circle Count, Slider Count, Spinner Count,\n\n'
-    fs.writeFile(fileNames.beatmapDiffs, inputString, function(err,file){
-        if(err) throw err;
-    })
 }
 
 async function main() {
     await createsFiles();
     api_key = await osuAPI.getAPIkey();
     let i = 0;
-    const BaseURL = (
-        'https://osusearch.com/query/?statuses=Ranked&modes=' + query_params.modes +
-        '&date_start=' + query_params.date_start +
-        '&date_end=' + query_params.date_end +
-        '&query_order=' + query_params.query_order +
-        '&offset=');
-    let fetchLink = BaseURL + i;
-    let { result_count, beatmaps } = await getBeatmaps(fetchLink);
-    let pageTotal = Math.floor(result_count / 18);
-    await iteratesThroughBeatmaps(beatmaps);
-    for (i = 1; i <= pageTotal; i++) {
-        fetchLink = BaseURL + i;
-        ({ result_count, beatmaps } = await getBeatmaps(fetchLink));
-        await iteratesThroughBeatmaps(beatmaps);
+    let queryResponse = await osuAPI.beatmapsetsSearch(api_key, queryStuff);
+    const total = queryResponse['total'];
+    let pages = Math.ceil(total/50);
+    await iteratesThroughBeatmapSets(queryResponse['beatmapsets']);
+    while(queryStuff.page < pages){
+        queryStuff.page += 1;
+        queryResponse = await osuAPI.beatmapsetsSearch(api_key, queryStuff);
+        await iteratesThroughBeatmapSets(queryResponse['beatmapsets']);
     }
+    console.log(total);
 }
 
 main();
+
