@@ -1,4 +1,4 @@
-module.exports = {getAPIkey, lookupBeatmap, getBeatmapSetDisc}
+module.exports = {getAPIkey, beatmapsetsSearch}
 
 async function getAPIkey() {
     var loginValues = require('./config.json');
@@ -23,14 +23,11 @@ async function getAPIkey() {
     }).then(response => response.json().then(json => json['access_token']));
 }
 
-async function lookupBeatmap(api_key, id){
+async function beatmapsetsSearch(api_key, params){
     const url = new URL(
-        "https://osu.ppy.sh/api/v2/beatmaps/lookup"
+        "https://osu.ppy.sh/api/v2/beatmapsets/search"
     );
-    
-    const params = {
-        "id": id,
-    };
+
     Object.keys(params)
         .forEach(key => url.searchParams.append(key, params[key]));
     
@@ -44,27 +41,4 @@ async function lookupBeatmap(api_key, id){
         method: "GET",
         headers,
     }).then(response => response.json());
-}
-
-async function getBeatmapSetDisc(api_key, beatmapsetid){
-    const url = new URL(
-        "https://osu.ppy.sh/api/v2/beatmapsets/discussions"
-    );
-    
-    const params = {
-        "beatmapset_id": beatmapsetid
-    };
-    Object.keys(params)
-        .forEach(key => url.searchParams.append(key, params[key]));
-    
-    const headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",        
-        Authorization: 'Bearer ' + api_key
-    };
-    
-    return fetch(url, {
-        method: "GET",
-        headers,
-    }).then(response => response.json().then(jsonresponse => jsonresponse['beatmaps']));
 }
