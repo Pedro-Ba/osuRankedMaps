@@ -3,7 +3,10 @@ var osuAPI = require('./osuAPIfunctions.js');
 var api_key = '';
 //NOTE: dates are YYYY MM DD
 
-const month = "2023-01"
+//base query: ranked=2020-10 
+const query = "ranked=2023";
+
+const csvfilename = "2023";
 
 const queryStuff = {
     "c": '',
@@ -15,13 +18,14 @@ const queryStuff = {
     "e": '',
     "r": '',
     "played": '',
-    "q": "ranked=" + month,
+    "q": query,
+    "sort": 'ranked_asc',
     "page": 1 //page starts at 1, page 0 and 1 are the same.
 }
 
 var fileNames = {
-    'beatmaps': 'csvs/beatmaps'+month+'.csv',
-    'beatmapDiffs': 'csvs/beatmapDiffs'+month+'.csv'
+    'beatmaps': 'csvs/beatmaps'+csvfilename+'.csv',
+    'beatmapDiffs': 'csvs/beatmapDiffs'+csvfilename+'.csv'
 }
 
 async function createsFiles(){
@@ -70,12 +74,12 @@ async function iteratesThroughDifficulties(beatmapDiffs, artist, title) {
             'Passcount': beatmapDiff['passcount'],
             'Playcount': beatmapDiff['playcount']
         }
-        if(beatmapDiff['mode_int'] == 0 && beatmapDiff['ranked'] == 1){
+        if(beatmapDiff['mode_int'] == queryStuff.m && beatmapDiff['ranked'] == 1){
             diffs.push(diffObject);
         }
         else{
-            console.log('Either mode int or ranked status is wrong. Check it out:')
-            console.log(beatmapDiff['url']);
+            // console.log('Either mode int or ranked status is wrong. Check it out:')
+            // console.log(beatmapDiff['url']);
         }
     }
     diffs.sort(function (a, b) {
@@ -136,13 +140,16 @@ async function main() {
     let queryResponse = await osuAPI.beatmapsetsSearch(api_key, queryStuff);
     const total = queryResponse['total'];
     let pages = Math.ceil(total/50);
+    console.log('Total amount of maps: ' + total);
+    console.log('Total amount of pages: ' + pages);
+    console.log('Page 1...')
     await iteratesThroughBeatmapSets(queryResponse['beatmapsets']);
     while(queryStuff.page < pages){
         queryStuff.page += 1;
+        console.log(`Page ${queryStuff.page}...`)
         queryResponse = await osuAPI.beatmapsetsSearch(api_key, queryStuff);
         await iteratesThroughBeatmapSets(queryResponse['beatmapsets']);
     }
-    console.log(total);
 }
 
 main();
