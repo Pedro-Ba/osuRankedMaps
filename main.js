@@ -4,9 +4,9 @@ var api_key = '';
 //NOTE: dates are YYYY MM DD
 
 //base query: ranked=2020-10 
-const query = "ranked=2023";
+const query = "ranked=2024";
 
-const csvfilename = "2023";
+const csvfilename = "2024";
 
 const queryStuff = {
     "c": '',
